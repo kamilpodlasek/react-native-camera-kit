@@ -309,8 +309,29 @@ RCT_ENUM_CONVERTER(CKCameraZoomMode, (@{
     }
 }
 
+- (void) adjustOrientation:(AVCaptureConnection *)connection
+{
+    switch([UIDevice currentDevice].orientation) {
+        default:
+        case UIDeviceOrientationPortrait:
+            connection.videoOrientation = AVCaptureVideoOrientationPortrait;
+            break;
+        case UIDeviceOrientationPortraitUpsideDown:
+            connection.videoOrientation = AVCaptureVideoOrientationPortraitUpsideDown;
+            break;
+        case UIDeviceOrientationLandscapeLeft:
+            connection.videoOrientation = AVCaptureVideoOrientationLandscapeRight;
+            break;
+        case UIDeviceOrientationLandscapeRight:
+            connection.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+            break;
+    }
+}
+
 - (void) orientationChanged:(NSNotification *)notification
 {
+    [self adjustOrientation:self.previewLayer.connection];
+
     if (!self.onOrientationChange) {
         return;
     }
@@ -366,7 +387,8 @@ RCT_ENUM_CONVERTER(CKCameraZoomMode, (@{
             [self.session addOutput:movieFileOutput];
             AVCaptureConnection *connection = [movieFileOutput connectionWithMediaType:AVMediaTypeVideo];
             if ( connection.isVideoStabilizationSupported ) {
-                connection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeAuto;
+                [self adjustOrientation:connection];
+                [self adjustOrientation:self.previewLayer.connection];
             }
             self.movieFileOutput = movieFileOutput;
         }
@@ -434,6 +456,7 @@ RCT_ENUM_CONVERTER(CKCameraZoomMode, (@{
     [super reactSetFrame:frame];
     
     self.previewLayer.frame = self.bounds;
+    [self adjustOrientation:self.previewLayer.connection];
 
 #if TARGET_IPHONE_SIMULATOR
     self.mockPreview.frame = self.bounds;
